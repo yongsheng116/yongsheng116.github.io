@@ -37,6 +37,9 @@ jobs:
           destination: ./_site
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
+        with:
+          # Upload entire repository
+          path: ./_site
 
   # Deployment job
   deploy:
@@ -49,7 +52,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }} # GitHub 提供的内置 token，用于授权部署
-          publish_dir: ./_site # 指定要部署的目录，即 Jekyll 的构建输出目录
-          publish_branch: gh-pages # 指定要部署到的分支，通常是 gh-pages
+
