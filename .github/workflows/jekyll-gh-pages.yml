@@ -37,9 +37,7 @@ jobs:
           destination: ./_site
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
-        with:
-          # Upload entire repository
-          path: ./_site
+        
 
   # Deployment job
   deploy:
