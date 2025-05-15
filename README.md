@@ -4,3 +4,5 @@
 
 [可调用对象](/可调用对象%20(Callable%20Object).html)
 
+[formate echo PATH ](/formate_echo_path.html)
+
