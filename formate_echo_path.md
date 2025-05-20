@@ -1,25 +1,25 @@
-查看PATH变量
+查看PATH
 ```
 echo $PATH
 ```
 
-输出的结果是
+输出的结果
 ```
 /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
 ```
-这个输出不方便阅读，如果能格式化一下就好了。
+不方便阅读，期望格式化显示；
 每个显示一行，就像下面这样：
 ```
 /usr/local/sbin
 /usr/local/bin
 
 ```
-其实还真的是可以的格式化显示的
+格式化显示的command如下：
 ```
 echo -e ${PATH//:/\\n}
 ```
 
-最后讲这个制作成一个alias就很方便使用了。
+作为alias就很方便使用了
 
 ```
 alias echo_path='echo -e ${PATH//:/\\n}'
