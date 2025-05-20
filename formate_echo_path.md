@@ -1,5 +1,5 @@
 查看PATH
-```
+```bash
 echo $PATH
 ```
 
@@ -15,13 +15,13 @@ echo $PATH
 
 ```
 格式化显示的command如下：
-```
+```bash
 echo -e ${PATH//:/\\n}
 ```
 
 作为alias就很方便使用了
 
-```
+```bash
 alias echo_path='echo -e ${PATH//:/\\n}'
 ```
 
