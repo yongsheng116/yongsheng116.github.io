@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>下载App</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #f6f8fa;
+      margin: 0; padding: 30px;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 4px;
+    }
+    #hint {
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    /* 主显示区域 */
+    #result {
+      margin-top: 10px;
+      width: 90%;
+      max-width: 600px;
+      min-height: 40px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 18px 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      color: #333;
+      transition: all 0.2s;
+      overflow-wrap: break-word;
+      word-break: break-all;
+    }
+    #result.has-content {
+      color: #000;
+      min-height: 60px;
+    }
+
+    #result .content {
+      flex: 1;
+      font-size: 15px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    button {
+      padding: 6px 14px;
+      border: none;
+      border-radius: 6px;
+      background: #0078d4;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+      white-space: nowrap;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      transition: background 0.2s, transform 0.1s;
+    }
+    button:hover {
+      background: #005fa3;
+      transform: translateY(-1px);
+    }
+
+    /* 危险操作按钮（清除） */
+    .btn-danger {
+      background: #d9534f;
+    }
+    .btn-danger:hover {
+      background: #c9302c;
+      transform: translateY(-1px);
+    }
+
+    /* 历史记录 */
+    .history {
+      margin-top: 30px;
+      width: 90%;
+      max-width: 600px;
+    }
+    .history h3 {
+      color: #444;
+      margin-bottom: 10px;
+    }
+    .item {
+      background: white;
+      padding: 10px 14px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      overflow-wrap: break-word;
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+    .item .title {
+      font-weight: bold;
+      margin-bottom: 4px;
+      color: #222;
+    }
+    .item .content {
+      max-height: 200px;
+      overflow-y: auto;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+    .item .buttons {
+      justify-content: flex-end;
+      margin-top: 6px;
+    }
+
+    /* toast提示 */
+    #toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    #toast.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <h1>📋 剪贴板二维码解析</h1>
+  <div id="hint">复制二维码图片后，直接按 <b>Ctrl+V</b> 或 <b>⌘+V</b> 粘贴即可解析</div>
+
+  <div id="result">暂无解析结果</div>
+
+  <div class="history">
+    <div class="history-header" style="display:flex;justify-content:space-between;align-items:center;">
+      <h3>历史记录</h3>
+      <button id="clearHistoryBtn" class="btn-danger" onclick="clearHistory()">清除历史</button>
+    </div>
+    <div id="historyList"></div>
+  </div>
+
+  <div id="toast">已复制到剪贴板</div>
+
+  <script>
+    const resultDiv = document.getElementById('result');
+    const historyList = document.getElementById('historyList');
+    const toast = document.getElementById('toast');
+
+    document.addEventListener('paste', async (e) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const blob = item.getAsFile();
+          const img = await blobToImage(blob);
+          const qrContent = decodeQRFromImage(img);
+          if (qrContent) {
+            showResult(String(qrContent));
+            saveHistory(String(qrContent));
+            renderHistory();
+          } else {
+            showResult(null);
+            alert('未检测到二维码，请确认粘贴的图片为二维码。');
+          }
+          return;
+        }
+      }
+      alert('剪贴板中没有检测到图片，请复制二维码图片后粘贴。');
+    });
+
+    function blobToImage(blob) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.src = URL.createObjectURL(blob);
+      });
+    }
+
+    function decodeQRFromImage(img) {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, canvas.width, canvas.height);
+      return code && code.data ? code.data : null;
+    }
+
+    function showResult(text) {
+      if (!text) {
+        resultDiv.classList.remove('has-content');
+        resultDiv.innerHTML = '暂无解析结果';
+        return;
+      }
+      resultDiv.classList.add('has-content');
+      const safeText = escapeHtml(text);
+      const isLink = /^https?:\/\//i.test(text);
+      resultDiv.innerHTML = `
+        <div class="content">${safeText}</div>
+        <div class="buttons">
+          <button onclick="copyText(\`${safeText}\`)">复制</button>
+          ${isLink ? `<button onclick="window.open(encodeURI('${text}'),'_blank')">打开</button>` : ''}
+        </div>
+      `;
+    }
+
+    function copyText(text) {
+      navigator.clipboard.writeText(text);
+      showToast('已复制到剪贴板');
+    }
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 1500);
+    }
+
+    function saveHistory(text) {
+      const data = JSON.parse(localStorage.getItem('qrHistory') || '[]');
+      if (!data.includes(text)) {
+        data.unshift(text);
+        localStorage.setItem('qrHistory', JSON.stringify(data.slice(0, 50)));
+      }
+    }
+
+    function renderHistory() {
+      const data = JSON.parse(localStorage.getItem('qrHistory') || '[]');
+      historyList.innerHTML = data.map(t => {
+        const safeT = escapeHtml(t);
+        const isLink = /^https?:\/\//i.test(t);
+        let title = safeT;
+        if (isLink) {
+          try {
+            const url = new URL(t);
+            title = decodeURIComponent(url.pathname.split('/').filter(Boolean).pop() || url.hostname);
+          } catch {}
+        }
+        return `
+          <div class="item">
+            <div class="title">${title}</div>
+            <div class="content">${safeT}</div>
+            <div class="buttons">
+              <button onclick="copyText(\`${safeT}\`)">复制</button>
+              ${isLink ? `<button onclick="window.open(encodeURI('${t}'),'_blank')">打开</button>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 清除历史记录（用户确认后删除 localStorage 中的 qrHistory 并重绘）
+    function clearHistory() {
+      const data = JSON.parse(localStorage.getItem('qrHistory') || '[]');
+      if (!data.length) {
+        showToast('当前没有历史可清除');
+        return;
+      }
+      if (!confirm('确认要清除全部历史记录？此操作不可恢复。')) return;
+      localStorage.removeItem('qrHistory');
+      renderHistory();
+      showToast('历史已清除');
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;',
+        '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+
+    renderHistory();
+  </script>
+</body>
+</html>

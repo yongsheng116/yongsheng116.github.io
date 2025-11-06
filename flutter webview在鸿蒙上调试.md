@@ -2,6 +2,8 @@
 
 本指南旨在详细阐述如何在鸿蒙 (HarmonyOS) 设备上对 Flutter 应用中的 WebView 进行调试。通过遵循以下步骤，您将能够有效地定位和解决 WebView 相关的问题。
 
+[脚本](/ohos_debug_webview.sh)
+
 #### 一、前提条件
 
 在开始调试之前，请确保满足以下条件：
